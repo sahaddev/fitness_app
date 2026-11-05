@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../providers/providers.dart';
 import 'workout_session_page.dart';
 import 'add_workout_page.dart';
 
@@ -14,13 +16,8 @@ class SessionsPage extends StatelessWidget {
     final isTablet = screenWidth > 600;
     final horizontalPadding = isTablet ? 32.0 : 18.0;
 
-    final days = [
-      {'day': 'DAY 1', 'number': '1'},
-      {'day': 'DAY 2', 'number': '2'},
-      {'day': 'DAY 3', 'number': '3'},
-      {'day': 'DAY 4', 'number': '4'},
-      {'day': 'DAY 5', 'number': '5'},
-    ];
+    final workoutProvider = context.watch<WorkoutProvider>();
+    final days = workoutProvider.days;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -33,7 +30,7 @@ class SessionsPage extends StatelessWidget {
             children: [
               SizedBox(height: mediaQuery.padding.top > 0 ? 12 : 20),
 
-              // Top Bar: Back Button + SESSIONS Header
+              // Top Bar: Back Button + SESSIONS Header + Add Button
               Row(
                 children: [
                   _buildCircularBackButton(context),
@@ -87,12 +84,24 @@ class SessionsPage extends StatelessWidget {
                       color: AppColors.textPrimary,
                     ),
                   ),
-                  Spacer(),
-                  IconButton(onPressed: () {}, icon: Icon(Icons.add)),
+                  const Spacer(),
+                  IconButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const AddWorkoutPage(),
+                        ),
+                      );
+                    },
+                    icon: const Icon(
+                      Icons.add_rounded,
+                      color: AppColors.gold,
+                      size: 26,
+                    ),
+                  ),
                 ],
               ),
-
-              SizedBox(height: isTablet ? 28 : 22),
 
               SizedBox(height: isTablet ? 28 : 22),
 
@@ -119,8 +128,7 @@ class SessionsPage extends StatelessWidget {
                   final item = days[index];
                   return _buildDayCard(
                     context: context,
-                    dayText: item['day']!,
-                    dayNumber: item['number']!,
+                    day: item,
                     isTablet: isTablet,
                   );
                 },
@@ -172,14 +180,11 @@ class SessionsPage extends StatelessWidget {
             width: 1,
           ),
         ),
-        child: Center(
-          child: InkWell(
-            onTap: () => Navigator.pop(context),
-            child: Icon(
-              Icons.chevron_left_rounded,
-              color: Colors.white,
-              size: 26,
-            ),
+        child: const Center(
+          child: Icon(
+            Icons.chevron_left_rounded,
+            color: Colors.white,
+            size: 26,
           ),
         ),
       ),
@@ -188,10 +193,12 @@ class SessionsPage extends StatelessWidget {
 
   Widget _buildDayCard({
     required BuildContext context,
-    required String dayText,
-    required String dayNumber,
+    required WorkoutDay day,
     required bool isTablet,
   }) {
+    final exerciseCount = day.exercises.length;
+    final isCompleted = day.isCompleted;
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -199,7 +206,7 @@ class SessionsPage extends StatelessWidget {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => WorkoutSessionPage(dayTitle: dayText),
+              builder: (context) => WorkoutSessionPage(dayTitle: day.title),
             ),
           );
         },
@@ -211,7 +218,9 @@ class SessionsPage extends StatelessWidget {
             color: AppColors.surface,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: Colors.white.withValues(alpha: 0.04),
+              color: isCompleted
+                  ? AppColors.gold.withValues(alpha: 0.3)
+                  : Colors.white.withValues(alpha: 0.04),
               width: 1,
             ),
           ),
@@ -222,17 +231,21 @@ class SessionsPage extends StatelessWidget {
                 width: 38,
                 height: 38,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF6E727A),
+                  color: isCompleted
+                      ? AppColors.gold.withValues(alpha: 0.2)
+                      : const Color(0xFF6E727A),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Column(
                   children: [
-                    // Top calendar header with two notches
+                    // Top calendar header
                     Container(
                       height: 10,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF5A5D64),
-                        borderRadius: BorderRadius.only(
+                      decoration: BoxDecoration(
+                        color: isCompleted
+                            ? AppColors.gold
+                            : const Color(0xFF5A5D64),
+                        borderRadius: const BorderRadius.only(
                           topLeft: Radius.circular(8),
                           topRight: Radius.circular(8),
                         ),
@@ -262,9 +275,9 @@ class SessionsPage extends StatelessWidget {
                     Expanded(
                       child: Center(
                         child: Text(
-                          dayNumber,
+                          day.number,
                           style: GoogleFonts.poppins(
-                            color: Colors.black87,
+                            color: isCompleted ? AppColors.gold : Colors.black87,
                             fontSize: 16,
                             fontWeight: FontWeight.w800,
                             height: 1.1,
@@ -277,18 +290,61 @@ class SessionsPage extends StatelessWidget {
               ),
               const SizedBox(width: 16),
 
-              // DAY Text (Golden/Amber)
-              Text(
-                dayText,
-                style: GoogleFonts.poppins(
-                  fontSize: isTablet ? 17 : 15.5,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.gold,
-                  letterSpacing: 0.8,
+              // DAY Text + Subtitle
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      day.title,
+                      style: GoogleFonts.poppins(
+                        fontSize: isTablet ? 16 : 14.5,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.gold,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                    Text(
+                      '${day.subtitle} • $exerciseCount ${exerciseCount == 1 ? "exercise" : "exercises"}',
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        color: AppColors.textSecondary,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
               ),
 
-              const Spacer(),
+              if (isCompleted)
+                Container(
+                  margin: const EdgeInsets.only(right: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: AppColors.gold.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.check_circle_rounded,
+                        color: AppColors.gold,
+                        size: 14,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Done',
+                        style: GoogleFonts.poppins(
+                          color: AppColors.gold,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
 
               // Circular Yellow Chevron Button
               Container(

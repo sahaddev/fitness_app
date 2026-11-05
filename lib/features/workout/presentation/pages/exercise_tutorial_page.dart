@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../providers/providers.dart';
 import '../widgets/workout_video_thumbnail.dart';
 
-class ExerciseTutorialPage extends StatefulWidget {
+class ExerciseTutorialPage extends StatelessWidget {
   final String exerciseName;
   final String instructionText;
 
@@ -14,19 +16,13 @@ class ExerciseTutorialPage extends StatefulWidget {
   });
 
   @override
-  State<ExerciseTutorialPage> createState() => _ExerciseTutorialPageState();
-}
-
-class _ExerciseTutorialPageState extends State<ExerciseTutorialPage> {
-  bool _isPlaying = false;
-  double _playbackProgress = 0.35;
-
-  @override
   Widget build(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
     final screenWidth = mediaQuery.size.width;
     final isTablet = screenWidth > 600;
     final horizontalPadding = isTablet ? 32.0 : 18.0;
+
+    final tutorialProvider = context.watch<ExerciseTutorialProvider>();
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -45,7 +41,7 @@ class _ExerciseTutorialPageState extends State<ExerciseTutorialPage> {
                   const SizedBox(width: 16),
                   Expanded(
                     child: Text(
-                      widget.exerciseName,
+                      exerciseName,
                       style: GoogleFonts.poppins(
                         fontSize: isTablet ? 22 : 19,
                         fontWeight: FontWeight.w600,
@@ -69,23 +65,25 @@ class _ExerciseTutorialPageState extends State<ExerciseTutorialPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Video Player / Thumbnail
-                    if (!_isPlaying)
+                    if (!tutorialProvider.isPlaying && tutorialProvider.playbackProgress == 0.0)
                       WorkoutVideoThumbnail(
                         height: isTablet ? 320 : screenWidth * 0.54,
                         onTap: () {
-                          setState(() {
-                            _isPlaying = true;
-                          });
+                          tutorialProvider.play();
                         },
                       )
                     else
-                      _buildActiveVideoPlayer(isTablet, screenWidth),
+                      _buildActiveVideoPlayer(
+                        isTablet,
+                        screenWidth,
+                        tutorialProvider,
+                      ),
 
                     const SizedBox(height: 22),
 
-                    // Primary Instruction Text from screenshot
+                    // Primary Instruction Text
                     Text(
-                      widget.instructionText,
+                      instructionText,
                       style: GoogleFonts.poppins(
                         fontSize: isTablet ? 18 : 16,
                         fontWeight: FontWeight.w500,
@@ -135,7 +133,11 @@ class _ExerciseTutorialPageState extends State<ExerciseTutorialPage> {
     );
   }
 
-  Widget _buildActiveVideoPlayer(bool isTablet, double screenWidth) {
+  Widget _buildActiveVideoPlayer(
+    bool isTablet,
+    double screenWidth,
+    ExerciseTutorialProvider tutorial,
+  ) {
     final playerHeight = isTablet ? 320.0 : screenWidth * 0.54;
 
     return ClipRRect(
@@ -165,14 +167,12 @@ class _ExerciseTutorialPageState extends State<ExerciseTutorialPage> {
             IconButton(
               iconSize: 52,
               icon: Icon(
-                _isPlaying ? Icons.pause_circle_filled_rounded : Icons.play_circle_filled_rounded,
+                tutorial.isPlaying
+                    ? Icons.pause_circle_filled_rounded
+                    : Icons.play_circle_filled_rounded,
                 color: AppColors.gold,
               ),
-              onPressed: () {
-                setState(() {
-                  _isPlaying = !_isPlaying;
-                });
-              },
+              onPressed: tutorial.togglePlayPause,
             ),
 
             // Video Controls Bottom Bar
@@ -198,30 +198,33 @@ class _ExerciseTutorialPageState extends State<ExerciseTutorialPage> {
                     SliderTheme(
                       data: SliderThemeData(
                         trackHeight: 3,
-                        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                        thumbShape:
+                            const RoundSliderThumbShape(enabledThumbRadius: 6),
                         activeTrackColor: AppColors.gold,
                         inactiveTrackColor: Colors.white24,
                         thumbColor: AppColors.gold,
                       ),
                       child: Slider(
-                        value: _playbackProgress,
-                        onChanged: (val) {
-                          setState(() {
-                            _playbackProgress = val;
-                          });
-                        },
+                        value: tutorial.playbackProgress,
+                        onChanged: tutorial.seek,
                       ),
                     ),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          '0:42',
-                          style: GoogleFonts.poppins(color: Colors.white70, fontSize: 11),
+                          tutorial.formattedCurrentTime,
+                          style: GoogleFonts.poppins(
+                            color: Colors.white70,
+                            fontSize: 11,
+                          ),
                         ),
                         Text(
-                          '2:15',
-                          style: GoogleFonts.poppins(color: Colors.white70, fontSize: 11),
+                          tutorial.formattedTotalTime,
+                          style: GoogleFonts.poppins(
+                            color: Colors.white70,
+                            fontSize: 11,
+                          ),
                         ),
                       ],
                     ),
@@ -309,4 +312,3 @@ class _ExerciseTutorialPageState extends State<ExerciseTutorialPage> {
     );
   }
 }
-

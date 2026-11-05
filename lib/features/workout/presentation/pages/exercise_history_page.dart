@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../providers/providers.dart';
+
+// Re-export models for backwards compatibility
+export '../providers/exercise_history_provider.dart'
+    show HistorySessionLog, HistorySetLog;
 
 class ExerciseHistoryPage extends StatelessWidget {
   final String exerciseName;
@@ -17,35 +23,10 @@ class ExerciseHistoryPage extends StatelessWidget {
     final isTablet = screenWidth > 600;
     final horizontalPadding = isTablet ? 32.0 : 18.0;
 
-    final historyLogs = [
-      HistorySessionLog(
-        date: '26-10-2026',
-        sets: [
-          HistorySetLog(set: 1, reps: '5', kg: '25', rep: '5', volume: 125),
-          HistorySetLog(set: 2, reps: '5', kg: '25', rep: '5', volume: 125),
-          HistorySetLog(set: 3, reps: '5', kg: '25', rep: '5', volume: 125),
-        ],
-        totalVolume: 375,
-      ),
-      HistorySessionLog(
-        date: '21-10-2026',
-        sets: [
-          HistorySetLog(set: 1, reps: '8', kg: '52.5', rep: '8', volume: 420),
-          HistorySetLog(set: 2, reps: '6', kg: '52.5', rep: '6', volume: 315),
-          HistorySetLog(set: 3, reps: '4', kg: '52.5', rep: '4', volume: 210),
-        ],
-        totalVolume: 945,
-      ),
-      HistorySessionLog(
-        date: '14-10-2026',
-        sets: [
-          HistorySetLog(set: 1, reps: '10', kg: '45', rep: '10', volume: 450),
-          HistorySetLog(set: 2, reps: '8', kg: '45', rep: '8', volume: 360),
-          HistorySetLog(set: 3, reps: '8', kg: '45', rep: '8', volume: 360),
-        ],
-        totalVolume: 1170,
-      ),
-    ];
+    final historyProvider = context.watch<ExerciseHistoryProvider>();
+    final historyLogs = historyProvider.getLogsForExercise(exerciseName);
+    final personalBestWeight = historyProvider.getPersonalBestWeight(exerciseName);
+    final personalBestVolume = historyProvider.getPersonalBestVolume(exerciseName);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -77,25 +58,103 @@ class ExerciseHistoryPage extends StatelessWidget {
               ),
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
+
+            // Personal Best Summary Header
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: AppColors.gold.withValues(alpha: 0.25),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    Column(
+                      children: [
+                        Text(
+                          'Max Weight',
+                          style: GoogleFonts.poppins(
+                            fontSize: 11.5,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '$personalBestWeight kg',
+                          style: GoogleFonts.montserrat(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.gold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Container(
+                      width: 1,
+                      height: 28,
+                      color: Colors.white.withValues(alpha: 0.1),
+                    ),
+                    Column(
+                      children: [
+                        Text(
+                          'Peak Volume',
+                          style: GoogleFonts.poppins(
+                            fontSize: 11.5,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '$personalBestVolume kg',
+                          style: GoogleFonts.montserrat(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.gold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 16),
 
             // History Log List
             Expanded(
-              child: ListView.separated(
-                padding: EdgeInsets.symmetric(
-                  horizontal: horizontalPadding,
-                  vertical: 8,
-                ),
-                physics: const BouncingScrollPhysics(),
-                itemCount: historyLogs.length,
-                separatorBuilder: (context, index) => const SizedBox(height: 26),
-                itemBuilder: (context, index) {
-                  return _buildHistorySessionItem(
-                    log: historyLogs[index],
-                    isTablet: isTablet,
-                  );
-                },
-              ),
+              child: historyLogs.isEmpty
+                  ? Center(
+                      child: Text(
+                        'No history logged yet for this exercise.',
+                        style: GoogleFonts.poppins(
+                          color: AppColors.textMuted,
+                          fontSize: 14,
+                        ),
+                      ),
+                    )
+                  : ListView.separated(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: horizontalPadding,
+                        vertical: 8,
+                      ),
+                      physics: const BouncingScrollPhysics(),
+                      itemCount: historyLogs.length,
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(height: 26),
+                      itemBuilder: (context, index) {
+                        return _buildHistorySessionItem(
+                          log: historyLogs[index],
+                          isTablet: isTablet,
+                        );
+                      },
+                    ),
             ),
           ],
         ),
@@ -246,32 +305,3 @@ class ExerciseHistoryPage extends StatelessWidget {
     );
   }
 }
-
-class HistorySessionLog {
-  final String date;
-  final List<HistorySetLog> sets;
-  final int totalVolume;
-
-  HistorySessionLog({
-    required this.date,
-    required this.sets,
-    required this.totalVolume,
-  });
-}
-
-class HistorySetLog {
-  final int set;
-  final String reps;
-  final String kg;
-  final String rep;
-  final int volume;
-
-  HistorySetLog({
-    required this.set,
-    required this.reps,
-    required this.kg,
-    required this.rep,
-    required this.volume,
-  });
-}
-

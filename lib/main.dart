@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import 'core/constants/app_colors.dart';
 import 'features/home/presentation/pages/home_page.dart';
+import 'features/workout/presentation/providers/providers.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,7 +16,16 @@ void main() {
       systemNavigationBarIconBrightness: Brightness.light,
     ),
   );
-  runApp(const FitnessApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => WorkoutProvider()),
+        ChangeNotifierProvider(create: (_) => ExerciseHistoryProvider()),
+        ChangeNotifierProvider(create: (_) => ExerciseTutorialProvider()),
+      ],
+      child: const FitnessApp(),
+    ),
+  );
 }
 
 class FitnessApp extends StatelessWidget {

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import '../../../../core/constants/app_colors.dart';
-import 'workout_session_page.dart';
+import '../providers/providers.dart';
 
 class AddWorkoutPage extends StatefulWidget {
   final String? initialDay;
@@ -24,7 +25,7 @@ class _AddWorkoutPageState extends State<AddWorkoutPage> {
   int _setCount = 3;
   String _selectedRepRange = '8-10';
 
-  final List<String> _days = ['DAY 1', 'DAY 2', 'DAY 3', 'DAY 4'];
+  final List<String> _days = ['DAY 1', 'DAY 2', 'DAY 3', 'DAY 4', 'DAY 5'];
 
   final List<String> _muscleGroups = [
     'Back',
@@ -94,6 +95,9 @@ class _AddWorkoutPageState extends State<AddWorkoutPage> {
       final newExercise = ExerciseItem(
         name: name,
         targetReps: _selectedRepRange,
+        muscleGroup: _selectedMuscle,
+        equipment: _selectedEquipment,
+        videoUrl: _videoUrlController.text.trim(),
         tutorialInstruction: instruction.isNotEmpty
             ? instruction
             : 'Focus on full range of motion and controlled tempo.',
@@ -108,6 +112,25 @@ class _AddWorkoutPageState extends State<AddWorkoutPage> {
           ),
         ),
       );
+
+      // Persist to WorkoutProvider
+      context.read<WorkoutProvider>().addExerciseToDay(_selectedDay, newExercise);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '$name added to $_selectedDay!',
+              style: GoogleFonts.poppins(color: Colors.white),
+            ),
+            backgroundColor: AppColors.surface,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        );
+      }
 
       Navigator.pop(context, newExercise);
     }
